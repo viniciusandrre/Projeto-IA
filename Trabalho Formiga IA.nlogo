@@ -9,6 +9,7 @@ globals [
   climate-duration    ;duracao do clima
   max-ant-age         ;idade maxima antes de morrer
   births-per-tick     ;numero de formigas nascidas no tick atual
+  total-food-collected ; quantidade total de comida coletada
 ]
 
 ; Variáveis dos patches (espaço onde as formigas se movem)
@@ -36,7 +37,8 @@ turtles-own [
 to setup
   clear-all                            ; limpa o mundo e reinicia a simulação
   set births-per-tick 0                ; Inicializa como 0 os nascimento por tick
-  set max-ant-age 50;                  ; idade maxima da formiga como 70
+  set total-food-collected 0           ; Total de comida coletada
+  set max-ant-age 70;                  ; idade maxima da formiga como 70
   set sunny? false                     ; sol ativo no inicio
   set raining? false                   ; sem chuva no inicio
   set sun-intensity 50                 ; intensidade inicial do sol
@@ -239,6 +241,7 @@ to look-for-food  ; procura por comida
       set carrying-food? true             ; a formiga pega o alimento
       set color yellow + 1                ; muda a cor para amarelo para indicar que está carregando comida
       set food food - 1                   ; reduz a quantidade de comida no patch
+      set total-food-collected total-food-collected + 1         ; atualiza a quantidade de comida coletada
       rt 180                              ; vira 180 graus para retornar ao ninho
       stop                                ; finaliza o procedimento atual
     ]
