@@ -1,6 +1,14 @@
 ; === INSTRUÇÕES ===
 ; === DEFINIÇÃO DE VARIÁVEIS ===
 
+globals [
+  raining?            ;estado global:indica chuva ou nao
+  rain-intensity      ;intensidade da chuva
+  sunny?              ;estado global do sol
+  sun-intensity       ;intensidade do sol
+  climate-duration    ;duracao do clima
+]
+
 ; Variáveis dos patches (espaço onde as formigas se movem)
 patches-own [
   chemical             ; quantidade de feromônio neste patch
@@ -8,38 +16,55 @@ patches-own [
   nest?                ; verdadeiro se o patch é parte do ninho, falso caso contrário
   nest-scent           ; valor numérico maior próximo ao ninho, usado para orientar as formigas
   food-source-number   ; identifica as fontes de alimento (1, 2 ou 3)
+  predator-pheromone   ; feromonio
+]
+
+; Variáveis das tartarugas (formigas e predadores)
+turtles-own [
+  life               ; Quantidade de vida da formiga ou predador
+  carrying-food?     ; Indica se a formiga está carregando comida
+  predator-alert     ; Indica se a formiga está alertando sobre um predador
 ]
 
 ; === PROCEDIMENTOS DE CONFIGURAÇÃO ===
 
 to setup
   clear-all                            ; limpa o mundo e reinicia a simulação
+  set sunny? false                      ; sol ativo no inicio
+  set raining? false                   ; sem chuva no inicio
+  set sun-intensity 50                 ; intensidade inicial do sol
+  set rain-intensity 50                ; ; intensidade inicial da chuva
+  set climate-duration 50
+  setup-sun
   set-default-shape turtles "bug"       ; define o formato das formigas como "inseto"
   create-turtles population [           ; cria formigas com base no valor do slider 'population'
-    set size 2                          ; aumenta o tamanho para melhor visualização
+    set size 1                          ; aumenta o tamanho para melhor visualização
     set color red                       ; vermelho indica que não está carregando comida
+    set life 3                          ; vida inicial formiga
+    set predator-alert false            ;não alerta inicialmete o predador
   ]
-  create-predators                      ; chama o procedimento criar predadores
+  create-predators
   setup-patches                         ; chama o procedimento para configurar os patches
   reset-ticks                           ; reinicia o contador de tempo da simulação
 end
 
 to create-predators
-  create-turtles 1                       ; Cria um predador
+  create-turtles 1                      ; Cria um predador
   [set size 11                          ; tamanho
-   set color brown                      ;cor
-   set label "Tamanduá"                 ;nome do predador
-   setxy -1 21           ;posição do predador
+   set color brown                      ; cor
+   set label "tamandua"                 ; nome do predador
+   setxy -1 21                          ; posição do predador
+   set life 100                         ; vida inicial predador(Tamanduá)
   ]
   ;;Cria o Garfanhoto
   create-turtles 1                      ; Cria um predador
-  [set size  4                         ; tamanho
+  [set size  4                          ; tamanho
    set color green                      ;cor
-   set label "Garfanhato"               ;nome do predador
-   setxy 20 -22           ;posição do predador
+   set label "gafanhoto"                ;nome do predador
+   setxy 20 -22                         ;posição do predador
+   set life 15                          ;vida inicial predador(Gafanhoto)
   ]
 end
-
 
 to setup-patches
   ask patches [
@@ -71,26 +96,41 @@ to setup-food  ; procedimento dos patches
   ]
 end
 
-to recolor-patch  ; procedimento dos patches
-  ifelse nest? [
-    set pcolor violet                    ; patches do ninho em violeta
+to recolor-patch
+  ifelse predator-pheromone > 0 [
+    set pcolor scale-color yellow predator-pheromone 0.1 5 ; Feromônio do predador em amarelo
   ] [
     ifelse food > 0 [
-      ; patches com comida são coloridos de acordo com a fonte
+     ; Patches com comida são coloridos de acordo com a fonte
       if food-source-number = 1 [ set pcolor cyan ]
       if food-source-number = 2 [ set pcolor sky ]
       if food-source-number = 3 [ set pcolor blue ]
     ] [
-      ; patches normais variam de cor com base na quantidade de feromônio
-      set pcolor scale-color green chemical 0.1 5
+      ifelse nest? [
+         set pcolor violet ; Patches do ninho em violeta
+       ] [
+         ifelse chemical > 0 [
+           set pcolor scale-color green chemical 0.1 5 ; Feromônio das formigas em verde
+         ] [
+           set pcolor black ; Patches sem feromônio, comida ou ninho ficam pretos
+        ]
+      ]
     ]
   ]
 end
 
+
 ; === PROCEDIMENTOS PRINCIPAIS ===
 
 to go
-  ask turtles [
+  switch-climate       ; Alterna entre sol e chuva
+  adjust-sun-visuals   ; Ajusta visualmente o sol
+  sunny-effects        ; Aplica efeitos do sol
+  toggle-rain
+  create-rain
+  move-rain
+  evaporate-rain
+  ask turtles with [shape != "sun"] [
     if who >= ticks [ stop ]             ; sincroniza a saída das formigas do ninho com o tempo
     ifelse color = red [
       look-for-food                      ; procura por comida se não estiver carregando
@@ -100,11 +140,10 @@ to go
     wiggle                               ; movimento aleatório para simular procura
     fd 1                                 ; move-se para frente
   ]
-  diffuse chemical (diffusion-rate / 100)  ; difusão do feromônio entre os patches
-  ask patches [
-    set chemical chemical * (100 - evaporation-rate) / 100  ; evaporação do feromônio
-    recolor-patch                     ; atualiza a cor do patch após mudanças
-  ]
+  pheromone-diffusion ; Difusão e evaporação dos feromônios
+  recolor-patches
+  predator-attack    ; Predadores atacam formigas
+  ant-defense        ; Formigas defendem-se e avisam outra
   tick                                  ; avança o contador de tempo da simulação
 end
 
@@ -131,6 +170,35 @@ to return-to-nest  ; procedimento das formigas
     uphill-nest-scent                   ; move-se em direção ao ninho seguindo o gradiente
   ]
 end
+
+to ant-defense                           ;defesa/ataque das formigas
+  ask turtles with [color = red or color = orange] [
+    let predator one-of turtles in-radius 1 with [label = "tamandua" or label = "gafanhoto"]
+    if predator != nobody [
+      ask predator [
+        set life life - 1                ;diminui a vida de -1 em -1
+        if life <= 0 [die]              ;verifica a morte ou nao do predaor
+      ]
+      set predator-alert true           ;alerta do predador
+    ]
+  ]
+end
+
+; === COMPORTAMENTO DOS PREDADORES ===
+
+to predator-attack                       ;ataque do predador
+  ask turtles with [label = "tamandua" or label = "gafanhoto"] [
+    let prey one-of turtles in-radius 1 with [color = red or color = orange]
+    if prey != nobody [
+     ask prey [
+       set life life - 3                  ;mata a formiga de forma instantanea
+        if life <= 0 [die]                ;verifica a morte ou nao da formiga
+      ]
+     set predator-alert true             ;alerta da presa
+    ]
+  ]
+end
+
 
 ; === MOVIMENTAÇÃO E ORIENTAÇÃO ===
 
@@ -160,11 +228,131 @@ to uphill-nest-scent  ; procedimento das formigas
   ]
 end
 
+to pheromone-diffusion
+    diffuse chemical (diffusion-rate / 100)
+    diffuse predator-pheromone 0.1
+    ask patches [
+      set chemical chemical * (100 - evaporation-rate) / 100
+      set predator-pheromone predator-pheromone * 0.9
+  ]
+end
+
+to recolor-patches
+  ask patches [
+    recolor-patch                        ;atualiza a cor
+  ]
+end
+
 to wiggle  ; procedimento das formigas
   rt random 40                           ; vira um ângulo aleatório à direita
   lt random 40                           ; vira um ângulo aleatório à esquerda
   if not can-move? 1 [ rt 180 ]          ; se não puder se mover, vira 180 graus
 end
+
+; === Clima ===
+
+to create-rain                          ;criando a chuva
+  if raining? and not sunny? [
+    create-turtles rain-intensity [
+      set size 0.3                      ; tamanho
+      set shape "raindrop"              ; gota importada da biblioteca e renomeada
+      set color blue                    ; cor
+      setxy random-xcor max-pycor       ; chuva caindo no mapa
+      set heading 100                   ; de onde cai
+    ]
+  ]
+end
+
+to move-rain                           ;  movimentando a chuva
+  ask turtles with [shape = "raindrop"] [
+    fd 1
+    if ycor <= min-pycor [
+      ask patch-here [
+        if pcolor != blue [set pcolor blue]
+      ]
+      die
+    ]
+  ]
+end
+
+to evaporate-rain                    ; desaparecendo com as gotas
+  ask patches with [pcolor = blue] [
+    set pcolor scale-color black random 10 0 10
+  ]
+end
+
+to toggle-rain                 ; chance de chover
+  if random 100 < 40 [         ; 20% de chance de mudar o estado a cada tick
+    set raining? not raining?  ; Alterna entre true e false
+  ]
+end
+
+to setup-sun                  ; criando o sol
+  create-turtles 1 [
+    set size 5
+    set color yellow
+    set shape "sun"
+    setxy 23 23
+  ]
+end
+
+to switch-climate
+  if climate-duration = 0 [
+    ; Alterna entre sol e chuva
+    ifelse sunny? [
+      set sunny? false
+      set raining? true
+    ] [
+      set sunny? true
+      set raining? false
+    ]
+
+    ; Define nova duração entre 50 e 100 ticks
+    set climate-duration random 50 + 50
+
+    ; Ajusta intensidade do sol ou zera durante chuva
+    ifelse sunny? [
+      set sun-intensity random 50 + 50
+    ] [
+      set sun-intensity 0
+    ]
+
+    ; Ajusta a cor do sol com base no clima
+    ask turtles with [shape = "sun"] [
+      ifelse sunny? [
+        set color yellow  ; Sol fica amarelo
+      ] [
+        set color gray    ; Sol fica cinza
+      ]
+    ]
+  ]
+
+  ; Reduz o contador de duração
+  set climate-duration climate-duration - 1
+end
+
+
+
+to sunny-effects
+  if sunny? [
+    ask patches with [pcolor = blue] [
+      set pcolor scale-color black (sun-intensity / 10) 0 10 ; Evaporação proporcional à intensidade do sol
+    ]
+  ]
+end
+
+to adjust-sun-visuals
+  ask turtles with [label = "☀"] [
+    set size (sun-intensity / 20) + 2 ; Tamanho proporcional à intensidade
+    ifelse sunny? [
+      set color yellow
+    ] [
+      set color gray
+    ]
+  ]
+end
+
+
 
 ; === FUNÇÕES AUXILIARES ===
 
