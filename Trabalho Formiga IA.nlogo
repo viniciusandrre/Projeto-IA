@@ -58,11 +58,11 @@ to setup
       set shape "ant 2"               ; formato
       set life 7                      ; vida
     ]
-    set carrying-food? false
-    set predator-alert false
+    set carrying-food? false          ; carregando comida falso
+    set predator-alert false          ; alerta de predador falso
     set age 0                         ; inicaliza a idade das formigas como 0
   ]
-  create-predators
+  create-predators                    ; chama procedimento para criar predadores
   setup-patches                         ; chama o procedimento para configurar os patches
   reset-ticks                           ; reinicia o contador de tempo da simulação
 end
@@ -107,7 +107,7 @@ to setup-food  ; procedimento dos patches
   ]
   if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5 [
     set food-source-number 2
-    set food 1;                            ; Baixa quantidade de comida
+    set food 2;                            ; Média quantidade de comida
     set food-value 2                       ; Nutrição Média
   ]
   if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5 [
@@ -155,64 +155,63 @@ to go
   create-rain          ; cria a chuva
   move-rain            ; move a chuva
   evaporate-rain       ; evapora a chuva
-  if raining? [
-    ask turtles with [ant-type = "operaria"] [
+  if raining? [        ; se estiver chovendo
+    ask turtles with [ant-type = "operaria"] [ ; se for operaria
       fd 0.9  ; As operárias se movem mais devagar na chuva
     ]
   ]
-  if raining? [
-    ask turtles with [ant-type = "guerreira"] [
-      fd 0.3  ; As operárias se movem mais devagar na chuva
+  if raining? [        ; se estiver chovendo
+    ask turtles with [ant-type = "guerreira"] [ ; se for guerreira
+      fd 0.3  ; As guerreiras se movem mais devagar na chuva
     ]
   ]
-  if sunny? [
+  if sunny? [        ; se estiver fazendo sol
     ask patches [
       set chemical chemical * 0.8  ; Evaporação mais rápida de feromônios no sol
     ]
   ]
-  ask turtles with [ant-type = "operaria"] [
-    ifelse color = red [
+  ask turtles with [ant-type = "operaria"] [  ; se for operaria
+    ifelse color = red [                      ; se a cor for vermelha
       look-for-food                            ; procura pela comida
     ] [
-      return-to-nest                           ; retorna pro ninho
+      return-to-nest                           ; se não for retorna pro ninho
     ]
-    wiggle
-    fd 2.5
+    wiggle                                     ; O procedimento wiggle adiciona uma variação aleatória no movimento da formiga.
+    fd 2.5                                     ; Move a formiga 2.5 unidades à frente, continuando sua busca ou retorno após ajustar sua direção com wiggle.
   ]
-  ask turtles with [ant-type = "guerreira"] [
-  if predator-alert [
+  ask turtles with [ant-type = "guerreira"] [ ; se for guerreira
+  if predator-alert [                         ; se alerta de predador for verdadeiro
       defend-nest                            ; defendem o ninho
     ]
     patrol                                   ; patrulha
     fd 1                                     ; velocidade
     ]
-   let current-population count turtles with [ant-type = "operaria" or ant-type = "guerreira"]
+   let current-population count turtles with [ant-type = "operaria" or ant-type = "guerreira"] ; Conta o número total de formigas operárias e guerreiras presentes na simulação e armazena esse valor na variável current-population.
 
-                           ; Atualizar o gráfico
-  set-current-plot "Reprodução de Formigas"
-  set-current-plot-pen "Total de Formigas"
+  ; Atualizar o gráfico
+  set-current-plot "Reprodução de Formigas" ;Define o gráfico atual como "Reprodução de Formigas"
+  set-current-plot-pen "Total de Formigas" ; "Total de Formigas".
   plot current-population  ; Plota o número total de formigas
 
-  set-current-plot-pen "Nascimentos"
+  set-current-plot-pen "Nascimentos" ; Muda o pênsil para "Nascimentos"
   plot births-per-tick  ; Plota o número de nascimentos no tick atual
 
-  ; Resetar a contagem de nascimentos para o próximo tick
-  set births-per-tick 0
-    ask turtles with [ant-type != "sun"] [
+  set births-per-tick 0 ; ; Resetar a contagem de nascimentos para o próximo tick
+    ask turtles with [ant-type != "sun"] [ ; verifica as formigas que são diferentes de sun
       if who >= ticks [ stop ]             ; sincroniza a saída das formigas do ninho com o tempo
   ]
    ask turtles [
-    if ant-type = "operaria" or ant-type = "guerreira" [
+    if ant-type = "operaria" or ant-type = "guerreira" [ ; se for operaria ou guerreira
       set age age + 1  ; Incrementa a idade a cada tick
       if age >= max-ant-age [ die ]  ; Remove a formiga se atingir a idade máxima
     ]
   ]
   pheromone-diffusion ; Difusão e evaporação dos feromônios
-  recolor-patches
-  predator-move
+  recolor-patches     ; Atualiza a cor dos patches com base nos estados
+  predator-move       ; Movimenta os predadores
   predator-attack    ; Predadores atacam formigas
   ant-defense        ; Formigas defendem-se e avisam outra
-  tick                                  ; avança o contador de tempo da simulação
+  tick               ; avança o contador de tempo da simulação
 end
 
 ; === COMPORTAMENTOS DAS FORMIGAS ===
@@ -238,7 +237,7 @@ to patrol
 end
 
 
-to return-to-nest  ; procedimento das formigas
+to return-to-nest  ; retornar pro ninho
   ifelse nest? [
     set color red                       ; deposita a comida e muda a cor para não carregando
       if not carrying-food? and random 100 < 80 [  ; 80% de chance de reprodução
@@ -267,36 +266,36 @@ to return-to-nest  ; procedimento das formigas
   ]
 end
 
-to defend-nest
-  let predator one-of turtles in-radius 2 with [label = "tamandua" or shape = "frog top"]
-  if predator != nobody [
+to defend-nest ; defesa do ninho
+  let predator one-of turtles in-radius 2 with [label = "tamandua" or shape = "frog top"] ; se tiver um tamandua ou sapo em um raio de 2
+  if predator != nobody [                ; se predador for diferente d eninguem
     ask predator [
-      set life life - 3 ; Guerreiras causam mais dano
-      if life <= 0 [ die ]
+      set life life - 3 ; diminuem a vida -3 em -3
+      if life <= 0 [ die ]  ; verifica a morte do predador
     ]
   ]
 end
 
 
 to ant-defense                           ;defesa/ataque das formigas
-  ask turtles with [ant-type = "guerreira"] [
-    let predator one-of turtles in-radius 3 with [label = "tamandua" or shape = "frog top"]
-    if predator != nobody [
+  ask turtles with [ant-type = "guerreira"] [        ; verifica se a formiga é guerreira
+    let predator one-of turtles in-radius 3 with [label = "tamandua" or shape = "frog top"] ; verifica se o predador esta no raio 3
+    if predator != nobody [                          ; se tiver preador
       ask predator [
         set life life - 3                ;diminui a vida de -1 em -1
         if life <= 0 [die]              ;verifica a morte ou nao do predaor
       ]
-      set predator-alert true           ;alerta do predador
+      set predator-alert true           ;alerta de predador
     ]
   ]
-  ask turtles with [ant-type = "operaria"] [
-    let predator one-of turtles in-radius 1 with [label = "tamandua" or shape = "frog top"]
-    if predator != nobody [
+  ask turtles with [ant-type = "operaria"] [       ;verifica se a formiga é operaria
+    let predator one-of turtles in-radius 1 with [label = "tamandua" or shape = "frog top"] ; verifica se o predador esta no raio 1
+    if predator != nobody [                        ; se tiver predador
       ask predator [
-        set life life - 1
-        if life <= 0 [die]
+        set life life - 1                          ; diminui a vida em -1 em -1
+        if life <= 0 [die]                         ; verifica a morte do predador
       ]
-      set predator-alert true
+      set predator-alert true                      ; alerta de predador
     ]
   ]
 end
@@ -304,40 +303,40 @@ end
 ; === COMPORTAMENTO DOS PREDADORES ===
 
 to predator-attack                       ;ataque do predador
-  ask turtles with [label = "tamandua" or shape = "frog top"] [
-    let prey one-of turtles in-radius 1 with [color = red or color = orange]
-    if prey != nobody [
+  ask turtles with [label = "tamandua" or shape = "frog top"] [ ; Verifica se e tamandua ou sapo
+    let prey one-of turtles in-radius 1 with [color = red or color = orange] ; verifica se há uma formiga no raio 1
+    if prey != nobody [     ; se for diferente d ninguem
      ask prey [
-       set life life - 3                  ;mata a formiga de forma instantanea
+       set life life - 3                  ;diminui a sua vida em -3
         if life <= 0 [die]                ;verifica a morte ou nao da formiga
       ]
-     set predator-alert true             ;alerta da presa
+     set predator-alert true             ;alerta do predador
     ]
   ]
 end
 
 to predator-move
-  ask turtles with [label = "tamandua"] [
-    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"]
-    ifelse prey != nobody [
+  ask turtles with [label = "tamandua"] [ ; se for tamandua
+    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"] ; Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
+    ifelse prey != nobody [             ; Se prey não for nobody (há uma presa):
       face prey                         ; Predador olha na direção da presa
       fd 0.5                              ; Move-se em direção à presa
-    ] [
-      rt random 4                      ; Caso não haja presa, move-se aleatoriamente
-      lt random 4
-      fd 0.2
+    ] [                                 ; se nao tiver presa
+      rt random 4                      ; Caso não haja presa, move-se aleatoriamente de 0 a 3 graus para a direita
+      lt random 4                      ; Gira um ângulo aleatório de 0 a 3 graus para a esquerda
+      fd 0.2                           ; Move-se uma pequena distância
     ]
     if not can-move? 1 [ rt 180 ]       ; Se não puder se mover, gira 180 graus
   ]
-  ask turtles with [shape = "frog top"] [
-    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"]
-    ifelse prey != nobody [
+  ask turtles with [shape = "frog top"] [ ; se for sapo
+    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"] ;  Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
+    ifelse prey != nobody [              ; Se prey não for nobody (há uma presa):
       face prey                         ; Predador olha na direção da presa
       fd 3                              ; Move-se em direção à presa
-    ] [
-      rt random 10                     ; Caso não haja presa, move-se aleatoriamente
-      lt random 10
-      fd 1.2
+    ] [                                 ; se não tiver presa
+      rt random 10                     ; Caso não haja presa, move-se aleatoriamente de 0 a 10 graus para a direita
+      lt random 10                     ;  Gira um ângulo aleatório de 0 a 10 graus para a esquerda
+      fd 1.2                           ; ; Move-se uma pequena distância
     ]
     if not can-move? 1 [ rt 180 ]       ; Se não puder se mover, gira 180 graus
   ]
@@ -349,42 +348,42 @@ end
 ; === MOVIMENTAÇÃO E ORIENTAÇÃO ===
 
 to uphill-chemical  ; procedimento das formigas
-  let scent-ahead chemical-scent-at-angle 0
-  let scent-right chemical-scent-at-angle 45
-  let scent-left chemical-scent-at-angle -45
-  if (scent-right > scent-ahead) or (scent-left > scent-ahead) [
-    ifelse scent-right > scent-left [
+  let scent-ahead chemical-scent-at-angle 0 ; Intensidade detectada diretamente à frente da formiga (ângulo 0 graus).
+  let scent-right chemical-scent-at-angle 45 ; Intensidade detectada a 45 graus à direita.
+  let scent-left chemical-scent-at-angle -45 ; Intensidade detectada a 45 graus à esquerda.
+  if (scent-right > scent-ahead) or (scent-left > scent-ahead) [ ; Verifica se há uma concentração maior de feromônio à direita ou à esquerda em comparação com a direção à frente
+    ifelse scent-right > scent-left [ ; Se o feromônio à direita (scent-right) for mais intenso que o da esquerda (scent-left)
       rt 45                              ; vira 45 graus à direita
-    ] [
+    ] [                                  ; caso nãos seja
       lt 45                              ; vira 45 graus à esquerda
     ]
   ]
 end
 
 to uphill-nest-scent  ; procedimento das formigas
-  let scent-ahead nest-scent-at-angle 0
-  let scent-right nest-scent-at-angle 45
-  let scent-left nest-scent-at-angle -45
-  if (scent-right > scent-ahead) or (scent-left > scent-ahead) [
-    ifelse scent-right > scent-left [
+  let scent-ahead nest-scent-at-angle 0 ;  Feromônio detectado diretamente à frente (ângulo 0 graus).
+  let scent-right nest-scent-at-angle 45 ;  Feromônio detectado 45 graus à direita.
+  let scent-left nest-scent-at-angle -45 ; Feromônio detectado 45 graus à esquerda.
+  if (scent-right > scent-ahead) or (scent-left > scent-ahead) [ ; Verifica se o feromônio detectado à direita ou à esquerda é maior do que o detectado diretamente à frente:
+    ifelse scent-right > scent-left [ ; Se o feromônio à direita (scent-right) for mais forte que o à esquerda (scent-left).
       rt 45                              ; vira 45 graus à direita
-    ] [
+    ] [                                   ; caso não seja
       lt 45                              ; vira 45 graus à esquerda
     ]
   ]
 end
 
-to pheromone-diffusion
-    diffuse chemical (diffusion-rate / 100)
-    diffuse predator-pheromone 0.1
-    ask patches [
-      set chemical chemical * (100 - evaporation-rate) / 100
-      set predator-pheromone predator-pheromone * 0.9
+to pheromone-diffusion; gerencia o chemical e predator-pheromone.
+    diffuse chemical (diffusion-rate / 100) ; diffuse espalha o valor da variável chemical para os patches vizinhos./
+    diffuse predator-pheromone 0.1          ; espalha o valor da variável predator-pheromone para patches vizinhos.
+    ask patches [                           ;
+      set chemical chemical * (100 - evaporation-rate) / 100 ; reduz o valor de chemical em cada patch / Multiplica o valor atual de chemical pelo fator (100 - evaporation-rate) / 100.
+      set predator-pheromone predator-pheromone * 0.9        ; Isso simula a evaporação constante dos feromônios dos predadores.
   ]
 end
 
-to recolor-patches
-  ask patches [
+to recolor-patches                       ; atualiza visivelmente o estado dos patches
+  ask patches [                          ; executar os taches com base no que foi definido
     recolor-patch                        ;atualiza a cor
   ]
 end
@@ -398,8 +397,8 @@ end
 ; === Clima ===
 
 to create-rain                          ;criando a chuva
-   if raining? and not sunny? [
-    create-turtles rain-intensity [
+   if raining? and not sunny? [         ; se etiver chovendo e não fazendo sol
+    create-turtles rain-intensity [     ;cria intensidade da chiva
       set size 0.3                      ; tamanho
       set shape "raindrop"              ; gota importada da biblioteca e renomeada
       set color blue                    ; cor
@@ -410,19 +409,19 @@ to create-rain                          ;criando a chuva
 end
 
 to move-rain                           ;  movimentando a chuva
-  ask turtles with [shape = "raindrop"] [
-    fd 3                                 ; velocidade
-    if ycor <= min-pycor [
-      ask patch-here [
-        if pcolor != blue [set pcolor blue]        ; cor
+  ask turtles with [shape = "raindrop"] [ ; selecion a gota de chuva
+    fd 3                                 ; aplica a velocidade
+    if ycor <= min-pycor [               ; verifica se a posycor da chuva é menor ou igual a posy min do mundo(indica se a gota caiu)
+      ask patch-here [                   ; identifca o patch na posição atual
+        if pcolor != blue [set pcolor blue]    ; se a cor for diferente de azul, transforma em azul
       ]
-      die
+      die                                ; remove a gota ao atingir o solo
     ]
   ]
 end
 
 to evaporate-rain                    ; desaparecendo com as gotas
-  ask patches with [pcolor = blue] [
+  ask patches with [pcolor = blue] [ ; aplica as alterações com os patches cujo pclor são azuis
     set pcolor scale-color black random 10 0 10      ; transformando o azul em preto
   ]
 end
@@ -443,29 +442,28 @@ to setup-sun                  ; criando o sol
 end
 
 to switch-climate              ; Mudança de clima
-  if climate-duration = 0 [
+  if climate-duration = 0 [    ; verifica se a duracao do clima atingiu sua duração máxima
     ; Alterna entre sol e chuva
-    ifelse sunny? [
-      set sunny? false
-      set raining? true
+    ifelse sunny? [            ; se sunny for verdadeiro
+      set sunny? false         ; se torna falso o sol
+      set raining? true        ; se torna verdadeiro a chuva
     ] [
-      set sunny? true
-      set raining? false
+      set sunny? true          ; torna verdadeiro o sol
+      set raining? false       ; a chuva se torna falso
     ]
 
-    ; Define nova duração entre 50 e 100 ticks
-    set climate-duration random 50 + 50
+    set climate-duration random 50 + 50  ; Define nova duração entre 50 e 100 ticks
 
     ; Ajusta intensidade do sol ou zera durante chuva
-    ifelse sunny? [
-      set sun-intensity random 50 + 50
+    ifelse sunny? [                      ; se sunny for verdadeiro
+      set sun-intensity random 50 + 50   ; ajusta a intensidade do sol
     ] [
-      set sun-intensity 0
+      set sun-intensity 0               ; se sunny for falso, a intesidade do sol é 0
     ]
 
     ; Ajusta a cor do sol com base no clima
     ask turtles with [shape = "sun"] [
-      ifelse sunny? [
+      ifelse sunny? [                  ; se sunny for verdadeiro
         set color yellow  ; Sol fica amarelo
       ] [
         set color gray    ; Sol fica cinza
@@ -474,26 +472,26 @@ to switch-climate              ; Mudança de clima
   ]
 
   ; Reduz o contador de duração
-  set climate-duration climate-duration - 1
+  set climate-duration climate-duration - 1 ; Reduz climate-duration em 1 a cada tick, representando o passar do tempo.
 end
 
 
 
 to sunny-effects                                  ; efeitos do sol
-  if sunny? [
-    ask patches with [pcolor = blue] [
-      set pcolor scale-color black (sun-intensity / 10) 0 10 ; Evaporação proporcional à intensidade do sol
+  if sunny? [                                     ; se sunny for verdadeiro
+    ask patches with [pcolor = blue] [            ; seleciona o patch de cor azul
+      set pcolor scale-color black (sun-intensity / 10) 0 10 ; Evaporação proporcional à intensidade do sol/transforma em preto para ilustrar a evaporacao
     ]
   ]
 end
 
 to adjust-sun-visuals                          ; ajustes do efeio do sol
-  ask turtles with [label = "☀"] [
-    set size (sun-intensity / 20) + 2 ; Tamanho proporcional à intensidade
-    ifelse sunny? [
-      set color yellow
+  ask turtles with [label = "☀"] [             ; seleciona o sol
+    set size (sun-intensity / 20) + 2           ; Tamanho proporcional à intensidade
+    ifelse sunny? [                             ; verifica se sunnny e true
+      set color yellow                          ; fica amarelo se for true
     ] [
-      set color gray
+      set color gray                            ; fica cinza se for false
     ]
   ]
 end
