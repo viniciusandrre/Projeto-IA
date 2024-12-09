@@ -19,9 +19,27 @@ to setup
     set size 2                          ; aumenta o tamanho para melhor visualização
     set color red                       ; vermelho indica que não está carregando comida
   ]
+  create-predators                      ; chama o procedimento criar predadores
   setup-patches                         ; chama o procedimento para configurar os patches
   reset-ticks                           ; reinicia o contador de tempo da simulação
 end
+
+to create-predators
+  create-turtles 1                       ; Cria um predador
+  [set size 11                          ; tamanho
+   set color brown                      ;cor
+   set label "Tamanduá"                 ;nome do predador
+   setxy -1 21           ;posição do predador
+  ]
+  ;;Cria o Garfanhoto
+  create-turtles 1                      ; Cria um predador
+  [set size  4                         ; tamanho
+   set color green                      ;cor
+   set label "Garfanhato"               ;nome do predador
+   setxy 20 -22           ;posição do predador
+  ]
+end
+
 
 to setup-patches
   ask patches [
@@ -176,8 +194,8 @@ end
 GRAPHICS-WINDOW
 210
 10
-751
-552
+881
+682
 -1
 -1
 13.0
@@ -190,10 +208,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--20
-20
--20
-20
+-25
+25
+-25
+25
 0
 0
 1
