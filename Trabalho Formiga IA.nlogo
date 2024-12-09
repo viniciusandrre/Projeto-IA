@@ -138,7 +138,7 @@ to recolor-patch ; Altera a cor dos patches no ambiente do modelo em NetLogo com
     ifelse food > 0 [ ; Patches com comida são coloridos de acordo com a fonte
       if food-source-number = 1 [ set pcolor cyan ] ; Fonte 1: cyan (ciano).
       if food-source-number = 2 [ set pcolor sky ] ; Fonte 2: sky (azul claro).
-      if food-source-number = 3 [ set pcolor blue ] ; Fonte 3: blue (azul escuro).
+      if food-source-number = 3 [ set pcolor lime ] ; Fonte 3: lime (lima).
     ] [
       ifelse nest? [ ;Se o patch é parte do ninho
          set pcolor violet ; Patches do ninho em violeta
@@ -709,21 +709,6 @@ false
 PENS
 "Total de Formigas" 1.0 0 -8053223 true "" "set-current-plot-pen \"Total de Formigas\"\n  plot current-population"
 "Nascimentos" 1.0 0 -12087248 true "" " set-current-plot-pen \"Nascimentos\"\n  plot births-per-tick  "
-
-SLIDER
-10
-279
-182
-312
-raini-intensity
-raini-intensity
-10
-100
-10.0
-1
-1
-NIL
-HORIZONTAL
 
 PLOT
 1191
