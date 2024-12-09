@@ -73,6 +73,7 @@ to create-predators
   [set size 11                          ; tamanho
    set color brown                      ; cor
    set label "tamandua"                 ; nome do predador
+   set shape "bug"                      ; formato
    setxy -1 21                          ; posição do predador
    set life 60                         ; vida inicial predador(Tamanduá)
   ]
@@ -184,8 +185,10 @@ to go
     ] [
       return-to-nest                           ; se não for retorna pro ninho
     ]
-    wiggle                                     ; O procedimento wiggle adiciona uma variação aleatória no movimento da formiga.
-    fd 2.5                                     ; Move a formiga 2.5 unidades à frente, continuando sua busca ou retorno após ajustar sua direção com wiggle.
+    wiggle
+ ; O procedimento wiggle adiciona uma variação aleatória no movimento da formiga.
+    fd 2.5
+ ; Move a formiga 2.5 unidades à frente, continuando sua busca ou retorno após ajustar sua direção com wiggle.
   ]
   ask turtles with [ant-type = "guerreira"] [ ; se for guerreira
   if predator-alert [                         ; se alerta de predador for verdadeiro
@@ -251,8 +254,10 @@ to look-for-food  ; procura por comida
   ]
 end
 
-to patrol
-  if random 100 < 10 [ rt random 360 ] ; Movimento aleatório ocasional(probabilidade de 10%)/Se a condição for satisfeita, a tartaruga gira para a direita (rt) por um ângulo aleatório entre 0 e 359 graus (random 360).
+to patrol ; patrulhar a área
+  if random 100 < 10 [ rt random 360 ]
+;Movimento aleatório ocasional(probabilidade de 10%)/Se a condição for satisfeita, a tartaruga gira para a direita (rt)
+;por um ângulo aleatório entre 0 e 359 graus (random 360).
 end
 
 
@@ -286,7 +291,8 @@ to return-to-nest  ; retornar pro ninho
 end
 
 to defend-nest ; defesa do ninho
-  let predator one-of turtles in-radius 2 with [label = "tamandua" or shape = "frog top" or shape = "spider"] ; se tiver um tamandua ou sapo ou aranha em um raio de 2
+  let predator one-of turtles in-radius 2 with [label = "tamandua" or shape = "frog top" or shape = "spider"]
+  ; se tiver um tamandua ou sapo ou aranha em um raio de 2
   if predator != nobody [                ; se predador for diferente d eninguem
     ask predator [
       set life life - 2 ; diminuem a vida -3 em -3
@@ -298,7 +304,8 @@ end
 
 to ant-defense                           ;defesa/ataque das formigas
   ask turtles with [ant-type = "guerreira"] [        ; verifica se a formiga é guerreira
-    let predator one-of turtles in-radius 3 with [label = "tamandua" or shape = "frog top" or shape = "spider"] ; verifica se o predador esta no raio 3
+    let predator one-of turtles in-radius 3 with [label = "tamandua" or shape = "frog top" or shape = "spider"]
+    ; verifica se o predador esta no raio 3
     if predator != nobody [                          ; se tiver preador
       ask predator [
         set life life - 2                ;diminui a vida de -1 em -1
@@ -308,7 +315,8 @@ to ant-defense                           ;defesa/ataque das formigas
     ]
   ]
   ask turtles with [ant-type = "operaria"] [       ;verifica se a formiga é operaria
-    let predator one-of turtles in-radius 1 with [label = "tamandua" or shape = "frog top" or shape = "spider"] ; verifica se o predador esta no raio 1
+    let predator one-of turtles in-radius 1 with [label = "tamandua" or shape = "frog top" or shape = "spider"]
+    ; verifica se o predador esta no raio 1
     if predator != nobody [                        ; se tiver predador
       ask predator [
         set life life - 0.5                          ; diminui a vida em -1 em -1
@@ -356,7 +364,8 @@ end
 
 to predator-move
   ask turtles with [label = "tamandua"] [ ; se for tamandua
-    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"] ; Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
+    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"]
+    ;; Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
     ifelse prey != nobody [             ; Se prey não for nobody (há uma presa):
       face prey                         ; Predador olha na direção da presa
       fd 0.5                              ; Move-se em direção à presa
@@ -368,7 +377,8 @@ to predator-move
     if not can-move? 1 [ rt 180 ]       ; Se não puder se mover, gira 180 graus
   ]
   ask turtles with [shape = "frog top"] [ ; se for sapo
-    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"] ;  Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
+    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"]
+    ;  Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
     ifelse prey != nobody [              ; Se prey não for nobody (há uma presa):
       face prey                         ; Predador olha na direção da presa
       fd 3                              ; Move-se em direção à presa
@@ -380,7 +390,8 @@ to predator-move
     if not can-move? 1 [ rt 180 ]       ; Se não puder se mover, gira 180 graus
   ]
    ask turtles with [shape = "spider"] [ ; se for aranha
-    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"] ;  Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
+    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"]
+    ;  Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
     ifelse prey != nobody [              ; Se prey não for nobody (há uma presa):
       face prey                         ; Predador olha na direção da presa
       fd 2                              ; Move-se em direção à presa
@@ -602,43 +613,43 @@ ticks
 30.0
 
 SLIDER
-782
-56
-954
-89
+10
+38
+182
+71
 population
 population
+600
+1000
+600.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+9
+114
+181
+147
+diffusion-rate
+diffusion-rate
 50
 100
-50.0
+51.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-824
-127
-996
-160
-diffusion-rate
-diffusion-rate
-0
-100
-50.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-806
+11
+198
+183
 231
-978
-264
 evaporation-rate
 evaporation-rate
-0
+10
 100
 50.0
 1
@@ -647,10 +658,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-1269
-113
-1332
-146
+1057
+36
+1120
+69
 NIL
 go
 T
@@ -664,10 +675,10 @@ NIL
 0
 
 BUTTON
-1266
-208
-1329
-241
+920
+33
+983
+66
 NIL
 setup
 NIL
@@ -681,10 +692,10 @@ NIL
 1
 
 PLOT
-1417
-364
-1617
-514
+913
+190
+1113
+340
 Reprodução de Formigas
 Ticks
 Número de Formigas
@@ -698,6 +709,57 @@ false
 PENS
 "Total de Formigas" 1.0 0 -8053223 true "" "set-current-plot-pen \"Total de Formigas\"\n  plot current-population"
 "Nascimentos" 1.0 0 -12087248 true "" " set-current-plot-pen \"Nascimentos\"\n  plot births-per-tick  "
+
+SLIDER
+10
+279
+182
+312
+raini-intensity
+raini-intensity
+10
+100
+10.0
+1
+1
+NIL
+HORIZONTAL
+
+PLOT
+1191
+195
+1391
+345
+Food Collection
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"Food-Collected" 1.0 0 -16777216 true "" "plot total-food-collected"
+
+PLOT
+1024
+432
+1224
+582
+Food in each Pile
+time
+food
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count turtles"
 
 @#$#@#$#@
 ## WHAT IS IT?
