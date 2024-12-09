@@ -21,6 +21,7 @@ patches-own [
 
 ; Variáveis das tartarugas (formigas e predadores)
 turtles-own [
+  ant-type           ; tipo de formiga
   life               ; Quantidade de vida da formiga ou predador
   carrying-food?     ; Indica se a formiga está carregando comida
   predator-alert     ; Indica se a formiga está alertando sobre um predador
@@ -30,18 +31,29 @@ turtles-own [
 
 to setup
   clear-all                            ; limpa o mundo e reinicia a simulação
-  set sunny? false                      ; sol ativo no inicio
+  set sunny? false                     ; sol ativo no inicio
   set raining? false                   ; sem chuva no inicio
   set sun-intensity 50                 ; intensidade inicial do sol
-  set rain-intensity 50                ; ; intensidade inicial da chuva
-  set climate-duration 50
-  setup-sun
-  set-default-shape turtles "bug"       ; define o formato das formigas como "inseto"
-  create-turtles population [           ; cria formigas com base no valor do slider 'population'
-    set size 1                          ; aumenta o tamanho para melhor visualização
-    set color red                       ; vermelho indica que não está carregando comida
-    set life 3                          ; vida inicial formiga
-    set predator-alert false            ;não alerta inicialmete o predador
+  set rain-intensity 50                ; intensidade inicial da chuva
+  set climate-duration 50              ; duracao do clima
+  setup-sun                            ; criar o sol
+  set-default-shape turtles "bug"      ; define o formato das formigas como "inseto"
+  create-turtles population [          ; cria formigas com base no valor do slider 'population
+    ifelse random 100 < 50 [           ; 50% operarios e 50% guerreiras
+      set ant-type "operaria"          ; operaria
+      set size 1                       ; tamanho
+      set color red                    ; cor
+      set shape "ant"                  ;
+      set life 3
+    ] [
+      set ant-type "guerreira"
+      set size 2
+      set color orange
+      set shape "ant 2"
+      set life 7
+    ]
+    set carrying-food? false
+    set predator-alert false
   ]
   create-predators
   setup-patches                         ; chama o procedimento para configurar os patches
@@ -60,7 +72,7 @@ to create-predators
   create-turtles 1                      ; Cria um predador
   [set size  4                          ; tamanho
    set color green                      ;cor
-   set label "gafanhoto"                ;nome do predador
+   set shape "frog top"                ;nome do predador
    setxy 20 -22                         ;posição do predador
    set life 15                          ;vida inicial predador(Gafanhoto)
   ]
@@ -130,18 +142,28 @@ to go
   create-rain
   move-rain
   evaporate-rain
-  ask turtles with [shape != "sun"] [
-    if who >= ticks [ stop ]             ; sincroniza a saída das formigas do ninho com o tempo
+  ask turtles with [ant-type = "operaria"] [
     ifelse color = red [
-      look-for-food                      ; procura por comida se não estiver carregando
+      look-for-food
     ] [
-      return-to-nest                     ; retorna ao ninho se estiver carregando comida
+      return-to-nest
     ]
-    wiggle                               ; movimento aleatório para simular procura
-    fd 1                                 ; move-se para frente
+    wiggle
+    fd 2.5
+  ]
+  ask turtles with [ant-type = "guerreira"] [
+  if predator-alert [
+      defend-nest
+    ]
+    patrol
+    fd 1
+    ]
+    ask turtles with [ant-type != "sun"] [
+      if who >= ticks [ stop ]             ; sincroniza a saída das formigas do ninho com o tempo
   ]
   pheromone-diffusion ; Difusão e evaporação dos feromônios
   recolor-patches
+  predator-move
   predator-attack    ; Predadores atacam formigas
   ant-defense        ; Formigas defendem-se e avisam outra
   tick                                  ; avança o contador de tempo da simulação
@@ -161,6 +183,11 @@ to look-for-food  ; procedimento das formigas
   ]
 end
 
+to patrol
+  if random 100 < 10 [ rt random 360 ] ; Movimento aleatório ocasional
+end
+
+
 to return-to-nest  ; procedimento das formigas
   ifelse nest? [
     set color red                       ; deposita a comida e muda a cor para não carregando
@@ -171,15 +198,36 @@ to return-to-nest  ; procedimento das formigas
   ]
 end
 
+to defend-nest
+  let predator one-of turtles in-radius 2 with [label = "tamandua" or label = "gafanhoto"]
+  if predator != nobody [
+    ask predator [
+      set life life - 2 ; Guerreiras causam mais dano
+      if life <= 0 [ die ]
+    ]
+  ]
+end
+
+
 to ant-defense                           ;defesa/ataque das formigas
-  ask turtles with [color = red or color = orange] [
+  ask turtles with [ant-type = "guerreira"] [
     let predator one-of turtles in-radius 1 with [label = "tamandua" or label = "gafanhoto"]
     if predator != nobody [
       ask predator [
-        set life life - 1                ;diminui a vida de -1 em -1
+        set life life - 3                ;diminui a vida de -1 em -1
         if life <= 0 [die]              ;verifica a morte ou nao do predaor
       ]
       set predator-alert true           ;alerta do predador
+    ]
+  ]
+  ask turtles with [ant-type = "operaria"] [
+    let predator one-of turtles in-radius 1 with [label = "tamandua" or label = "gafanhoto"]
+    if predator != nobody [
+      ask predator [
+        set life life - 1
+        if life <= 0 [die]
+      ]
+      set predator-alert true
     ]
   ]
 end
@@ -187,7 +235,7 @@ end
 ; === COMPORTAMENTO DOS PREDADORES ===
 
 to predator-attack                       ;ataque do predador
-  ask turtles with [label = "tamandua" or label = "gafanhoto"] [
+  ask turtles with [label = "tamandua" or shape = "frog top"] [
     let prey one-of turtles in-radius 1 with [color = red or color = orange]
     if prey != nobody [
      ask prey [
@@ -198,6 +246,35 @@ to predator-attack                       ;ataque do predador
     ]
   ]
 end
+
+to predator-move
+  ask turtles with [label = "tamandua"] [
+    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"]
+    ifelse prey != nobody [
+      face prey                         ; Predador olha na direção da presa
+      fd 0.5                              ; Move-se em direção à presa
+    ] [
+      rt random 4                      ; Caso não haja presa, move-se aleatoriamente
+      lt random 4
+      fd 0.2
+    ]
+    if not can-move? 1 [ rt 180 ]       ; Se não puder se mover, gira 180 graus
+  ]
+  ask turtles with [shape = "frog top"] [
+    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"]
+    ifelse prey != nobody [
+      face prey                         ; Predador olha na direção da presa
+      fd 3                              ; Move-se em direção à presa
+    ] [
+      rt random 10                     ; Caso não haja presa, move-se aleatoriamente
+      lt random 10
+      fd 1.2
+    ]
+    if not can-move? 1 [ rt 180 ]       ; Se não puder se mover, gira 180 graus
+  ]
+
+end
+
 
 
 ; === MOVIMENTAÇÃO E ORIENTAÇÃO ===
@@ -265,7 +342,7 @@ end
 
 to move-rain                           ;  movimentando a chuva
   ask turtles with [shape = "raindrop"] [
-    fd 1
+    fd 3
     if ycor <= min-pycor [
       ask patch-here [
         if pcolor != blue [set pcolor blue]
@@ -532,6 +609,34 @@ true
 0
 Polygon -7500403 true true 150 0 135 15 120 60 120 105 15 165 15 195 120 180 135 240 105 270 120 285 150 270 180 285 210 270 165 240 180 180 285 195 285 165 180 105 180 60 165 15
 
+ant
+true
+0
+Polygon -7500403 true true 136 61 129 46 144 30 119 45 124 60 114 82 97 37 132 10 93 36 111 84 127 105 172 105 189 84 208 35 171 11 202 35 204 37 186 82 177 60 180 44 159 32 170 44 165 60
+Polygon -7500403 true true 150 95 135 103 139 117 125 149 137 180 135 196 150 204 166 195 161 180 174 150 158 116 164 102
+Polygon -7500403 true true 149 186 128 197 114 232 134 270 149 282 166 270 185 232 171 195 149 186
+Polygon -7500403 true true 225 66 230 107 159 122 161 127 234 111 236 106
+Polygon -7500403 true true 78 58 99 116 139 123 137 128 95 119
+Polygon -7500403 true true 48 103 90 147 129 147 130 151 86 151
+Polygon -7500403 true true 65 224 92 171 134 160 135 164 95 175
+Polygon -7500403 true true 235 222 210 170 163 162 161 166 208 174
+Polygon -7500403 true true 249 107 211 147 168 147 168 150 213 150
+
+ant 2
+true
+0
+Polygon -7500403 true true 150 19 120 30 120 45 130 66 144 81 127 96 129 113 144 134 136 185 121 195 114 217 120 255 135 270 165 270 180 255 188 218 181 195 165 184 157 134 170 115 173 95 156 81 171 66 181 42 180 30
+Polygon -7500403 true true 150 167 159 185 190 182 225 212 255 257 240 212 200 170 154 172
+Polygon -7500403 true true 161 167 201 150 237 149 281 182 245 140 202 137 158 154
+Polygon -7500403 true true 155 135 185 120 230 105 275 75 233 115 201 124 155 150
+Line -7500403 true 120 36 75 45
+Line -7500403 true 75 45 90 15
+Line -7500403 true 180 35 225 45
+Line -7500403 true 225 45 210 15
+Polygon -7500403 true true 145 135 115 120 70 105 25 75 67 115 99 124 145 150
+Polygon -7500403 true true 139 167 99 150 63 149 19 182 55 140 98 137 142 154
+Polygon -7500403 true true 150 167 141 185 110 182 75 212 45 257 60 212 100 170 146 172
+
 arrow
 true
 0
@@ -664,6 +769,17 @@ Circle -16777216 true false 113 68 74
 Polygon -10899396 true false 189 233 219 188 249 173 279 188 234 218
 Polygon -10899396 true false 180 255 150 210 105 210 75 240 135 240
 
+frog top
+true
+0
+Polygon -7500403 true true 146 18 135 30 119 42 105 90 90 150 105 195 135 225 165 225 195 195 210 150 195 90 180 41 165 30 155 18
+Polygon -7500403 true true 91 176 67 148 70 121 66 119 61 133 59 111 53 111 52 131 47 115 42 120 46 146 55 187 80 237 106 269 116 268 114 214 131 222
+Polygon -7500403 true true 185 62 234 84 223 51 226 48 234 61 235 38 240 38 243 60 252 46 255 49 244 95 188 92
+Polygon -7500403 true true 115 62 66 84 77 51 74 48 66 61 65 38 60 38 57 60 48 46 45 49 56 95 112 92
+Polygon -7500403 true true 200 186 233 148 230 121 234 119 239 133 241 111 247 111 248 131 253 115 258 120 254 146 245 187 220 237 194 269 184 268 186 214 169 222
+Circle -16777216 true false 157 38 18
+Circle -16777216 true false 125 38 18
+
 house
 false
 0
@@ -714,6 +830,13 @@ Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
 Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
 Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
 
+raindrop
+false
+0
+Circle -7500403 true true 73 133 152
+Polygon -7500403 true true 219 181 205 152 185 120 174 95 163 64 156 37 149 7 147 166
+Polygon -7500403 true true 79 182 95 152 115 120 126 95 137 64 144 37 150 6 154 165
+
 sheep
 false
 15
@@ -745,6 +868,19 @@ star
 false
 0
 Polygon -7500403 true true 151 1 185 108 298 108 207 175 242 282 151 216 59 282 94 175 3 108 116 108
+
+sun
+false
+0
+Circle -7500403 true true 75 75 150
+Polygon -7500403 true true 300 150 240 120 240 180
+Polygon -7500403 true true 150 0 120 60 180 60
+Polygon -7500403 true true 150 300 120 240 180 240
+Polygon -7500403 true true 0 150 60 120 60 180
+Polygon -7500403 true true 60 195 105 240 45 255
+Polygon -7500403 true true 60 105 105 60 45 45
+Polygon -7500403 true true 195 60 240 105 255 45
+Polygon -7500403 true true 240 195 195 240 255 255
 
 target
 false
