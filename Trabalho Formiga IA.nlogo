@@ -7,6 +7,8 @@ globals [
   sunny?              ;estado global do sol
   sun-intensity       ;intensidade do sol
   climate-duration    ;duracao do clima
+  max-ant-age         ;idade maxima antes de morrer
+  births-per-tick     ;numero de formigas nascidas no tick atual
 ]
 
 ; Variáveis dos patches (espaço onde as formigas se movem)
@@ -17,6 +19,7 @@ patches-own [
   nest-scent           ; valor numérico maior próximo ao ninho, usado para orientar as formigas
   food-source-number   ; identifica as fontes de alimento (1, 2 ou 3)
   predator-pheromone   ; feromonio
+  food-value          ; valor nutricional do alimento neste patch
 ]
 
 ; Variáveis das tartarugas (formigas e predadores)
@@ -25,12 +28,15 @@ turtles-own [
   life               ; Quantidade de vida da formiga ou predador
   carrying-food?     ; Indica se a formiga está carregando comida
   predator-alert     ; Indica se a formiga está alertando sobre um predador
+  age                ; idade da formiga
 ]
 
 ; === PROCEDIMENTOS DE CONFIGURAÇÃO ===
 
 to setup
   clear-all                            ; limpa o mundo e reinicia a simulação
+  set births-per-tick 0                ; Inicializa como 0 os nascimento por tick
+  set max-ant-age 50;                  ; idade maxima da formiga como 70
   set sunny? false                     ; sol ativo no inicio
   set raining? false                   ; sem chuva no inicio
   set sun-intensity 50                 ; intensidade inicial do sol
@@ -43,17 +49,18 @@ to setup
       set ant-type "operaria"          ; operaria
       set size 1                       ; tamanho
       set color red                    ; cor
-      set shape "ant"                  ;
-      set life 3
+      set shape "ant"                  ; formato da formiga
+      set life 3                       ; vida da formiga operaria
     ] [
-      set ant-type "guerreira"
-      set size 2
-      set color orange
-      set shape "ant 2"
-      set life 7
+      set ant-type "guerreira"        ; guerreira
+      set size 2                      ; tamanho
+      set color orange                ; cor
+      set shape "ant 2"               ; formato
+      set life 7                      ; vida
     ]
     set carrying-food? false
     set predator-alert false
+    set age 0                         ; inicaliza a idade das formigas como 0
   ]
   create-predators
   setup-patches                         ; chama o procedimento para configurar os patches
@@ -68,13 +75,13 @@ to create-predators
    setxy -1 21                          ; posição do predador
    set life 100                         ; vida inicial predador(Tamanduá)
   ]
-  ;;Cria o Garfanhoto
+  ;;Cria o Sapo
   create-turtles 1                      ; Cria um predador
   [set size  4                          ; tamanho
    set color green                      ;cor
-   set shape "frog top"                ;nome do predador
+   set shape "frog top"                 ;nome do predador
    setxy 20 -22                         ;posição do predador
-   set life 15                          ;vida inicial predador(Gafanhoto)
+   set life 12                          ;vida inicial predador(Sapo)
   ]
 end
 
@@ -95,12 +102,18 @@ to setup-food  ; procedimento dos patches
   ; Configura três fontes de alimento em posições específicas
   if (distancexy (0.6 * max-pxcor) 0) < 5 [
     set food-source-number 1
+    set food 3                           ; Alta quantidade de comida
+    set food-value 3                     ; alta nutrição
   ]
   if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5 [
     set food-source-number 2
+    set food 1;                            ; Baixa quantidade de comida
+    set food-value 2                       ; Nutrição Média
   ]
   if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5 [
     set food-source-number 3
+    set food 1                            ; Baixa quantidade de comida
+    set food-value 1                      ; Nutrição Baixa
   ]
   ; Se o patch faz parte de uma fonte de alimento, atribui uma quantidade de comida (1 ou 2)
   if food-source-number > 0 [
@@ -138,28 +151,61 @@ to go
   switch-climate       ; Alterna entre sol e chuva
   adjust-sun-visuals   ; Ajusta visualmente o sol
   sunny-effects        ; Aplica efeitos do sol
-  toggle-rain
-  create-rain
-  move-rain
-  evaporate-rain
+  toggle-rain          ; chuva alternada
+  create-rain          ; cria a chuva
+  move-rain            ; move a chuva
+  evaporate-rain       ; evapora a chuva
+  if raining? [
+    ask turtles with [ant-type = "operaria"] [
+      fd 0.9  ; As operárias se movem mais devagar na chuva
+    ]
+  ]
+  if raining? [
+    ask turtles with [ant-type = "guerreira"] [
+      fd 0.3  ; As operárias se movem mais devagar na chuva
+    ]
+  ]
+  if sunny? [
+    ask patches [
+      set chemical chemical * 0.8  ; Evaporação mais rápida de feromônios no sol
+    ]
+  ]
   ask turtles with [ant-type = "operaria"] [
     ifelse color = red [
-      look-for-food
+      look-for-food                            ; procura pela comida
     ] [
-      return-to-nest
+      return-to-nest                           ; retorna pro ninho
     ]
     wiggle
     fd 2.5
   ]
   ask turtles with [ant-type = "guerreira"] [
   if predator-alert [
-      defend-nest
+      defend-nest                            ; defendem o ninho
     ]
-    patrol
-    fd 1
+    patrol                                   ; patrulha
+    fd 1                                     ; velocidade
     ]
+   let current-population count turtles with [ant-type = "operaria" or ant-type = "guerreira"]
+
+                           ; Atualizar o gráfico
+  set-current-plot "Reprodução de Formigas"
+  set-current-plot-pen "Total de Formigas"
+  plot current-population  ; Plota o número total de formigas
+
+  set-current-plot-pen "Nascimentos"
+  plot births-per-tick  ; Plota o número de nascimentos no tick atual
+
+  ; Resetar a contagem de nascimentos para o próximo tick
+  set births-per-tick 0
     ask turtles with [ant-type != "sun"] [
       if who >= ticks [ stop ]             ; sincroniza a saída das formigas do ninho com o tempo
+  ]
+   ask turtles [
+    if ant-type = "operaria" or ant-type = "guerreira" [
+      set age age + 1  ; Incrementa a idade a cada tick
+      if age >= max-ant-age [ die ]  ; Remove a formiga se atingir a idade máxima
+    ]
   ]
   pheromone-diffusion ; Difusão e evaporação dos feromônios
   recolor-patches
@@ -172,11 +218,15 @@ end
 ; === COMPORTAMENTOS DAS FORMIGAS ===
 
 to look-for-food  ; procedimento das formigas
-  if food > 0 [
-    set color orange + 1                ; muda a cor para indicar que está carregando comida
-    set food food - 1                   ; reduz a quantidade de comida no patch
-    rt 180                              ; vira 180 graus para retornar ao ninho
-    stop                                ; finaliza o procedimento atual
+  if food > 0 [                           ; Verifica se há comida
+
+    if random 100 < (food-value * 33) [            ; 33% para cada ponto de valor nutricional (1 a 3)
+      set carrying-food? true             ; a formiga pega o alimento
+      set color orange + 1                ; muda a cor para indicar que está carregando comida
+      set food food - 1                   ; reduz a quantidade de comida no patch
+      rt 180                              ; vira 180 graus para retornar ao ninho
+      stop                                ; finaliza o procedimento atual
+    ]
   ]
   if (chemical >= 0.05) and (chemical < 2) [
     uphill-chemical                     ; segue o rastro de feromônio
@@ -191,6 +241,25 @@ end
 to return-to-nest  ; procedimento das formigas
   ifelse nest? [
     set color red                       ; deposita a comida e muda a cor para não carregando
+      if not carrying-food? and random 100 < 80 [  ; 80% de chance de reprodução
+      hatch 3 [
+        ifelse random 100 < 75 [        ; 50% de chance de nascer operária ou guerreira
+          set ant-type "operaria"       ; tipo de formiga
+          set life 3                    ; vida
+          set size 1                    ; tamanho
+          set color red                 ; cor
+        ] [
+          set ant-type "guerreira"      ; tipo de formiga
+          set life 7                    ; vida
+          set size 2                    ; tamanho
+          set color orange              ; cor
+        ]
+        set age 0                       ; Nova formiga começa com idade 0
+        set carrying-food? false        ; Não está carregando comida
+        set predator-alert false        ; Sem alerta de predador
+      ]
+       set births-per-tick births-per-tick + 1  ; Incrementa a contagem de nascimentos
+    ]
     rt 180                              ; vira 180 graus para sair novamente
   ] [
     set chemical chemical + 60          ; deposita feromônio no caminho de volta
@@ -199,10 +268,10 @@ to return-to-nest  ; procedimento das formigas
 end
 
 to defend-nest
-  let predator one-of turtles in-radius 2 with [label = "tamandua" or label = "gafanhoto"]
+  let predator one-of turtles in-radius 2 with [label = "tamandua" or shape = "frog top"]
   if predator != nobody [
     ask predator [
-      set life life - 2 ; Guerreiras causam mais dano
+      set life life - 3 ; Guerreiras causam mais dano
       if life <= 0 [ die ]
     ]
   ]
@@ -211,7 +280,7 @@ end
 
 to ant-defense                           ;defesa/ataque das formigas
   ask turtles with [ant-type = "guerreira"] [
-    let predator one-of turtles in-radius 1 with [label = "tamandua" or label = "gafanhoto"]
+    let predator one-of turtles in-radius 3 with [label = "tamandua" or shape = "frog top"]
     if predator != nobody [
       ask predator [
         set life life - 3                ;diminui a vida de -1 em -1
@@ -221,7 +290,7 @@ to ant-defense                           ;defesa/ataque das formigas
     ]
   ]
   ask turtles with [ant-type = "operaria"] [
-    let predator one-of turtles in-radius 1 with [label = "tamandua" or label = "gafanhoto"]
+    let predator one-of turtles in-radius 1 with [label = "tamandua" or shape = "frog top"]
     if predator != nobody [
       ask predator [
         set life life - 1
@@ -329,7 +398,7 @@ end
 ; === Clima ===
 
 to create-rain                          ;criando a chuva
-  if raining? and not sunny? [
+   if raining? and not sunny? [
     create-turtles rain-intensity [
       set size 0.3                      ; tamanho
       set shape "raindrop"              ; gota importada da biblioteca e renomeada
@@ -342,10 +411,10 @@ end
 
 to move-rain                           ;  movimentando a chuva
   ask turtles with [shape = "raindrop"] [
-    fd 3
+    fd 3                                 ; velocidade
     if ycor <= min-pycor [
       ask patch-here [
-        if pcolor != blue [set pcolor blue]
+        if pcolor != blue [set pcolor blue]        ; cor
       ]
       die
     ]
@@ -354,7 +423,7 @@ end
 
 to evaporate-rain                    ; desaparecendo com as gotas
   ask patches with [pcolor = blue] [
-    set pcolor scale-color black random 10 0 10
+    set pcolor scale-color black random 10 0 10      ; transformando o azul em preto
   ]
 end
 
@@ -366,14 +435,14 @@ end
 
 to setup-sun                  ; criando o sol
   create-turtles 1 [
-    set size 5
-    set color yellow
-    set shape "sun"
-    setxy 23 23
+    set size 5                ; tamanho
+    set color yellow          ; cor
+    set shape "sun"           ; formato
+    setxy 23 23               ; posição
   ]
 end
 
-to switch-climate
+to switch-climate              ; Mudança de clima
   if climate-duration = 0 [
     ; Alterna entre sol e chuva
     ifelse sunny? [
@@ -410,7 +479,7 @@ end
 
 
 
-to sunny-effects
+to sunny-effects                                  ; efeitos do sol
   if sunny? [
     ask patches with [pcolor = blue] [
       set pcolor scale-color black (sun-intensity / 10) 0 10 ; Evaporação proporcional à intensidade do sol
@@ -418,7 +487,7 @@ to sunny-effects
   ]
 end
 
-to adjust-sun-visuals
+to adjust-sun-visuals                          ; ajustes do efeio do sol
   ask turtles with [label = "☀"] [
     set size (sun-intensity / 20) + 2 ; Tamanho proporcional à intensidade
     ifelse sunny? [
@@ -561,6 +630,25 @@ NIL
 NIL
 NIL
 1
+
+PLOT
+1417
+364
+1617
+514
+Reprodução de Formigas
+Ticks
+Número de Formigas
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"Total de Formigas" 1.0 0 -8053223 true "" "set-current-plot-pen \"Total de Formigas\"\n  plot current-population"
+"Nascimentos" 1.0 0 -12087248 true "" " set-current-plot-pen \"Nascimentos\"\n  plot births-per-tick  "
 
 @#$#@#$#@
 ## WHAT IS IT?
