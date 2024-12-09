@@ -43,9 +43,8 @@ to setup
   set rain-intensity 50                ; intensidade inicial da chuva
   set climate-duration 50              ; duracao do clima
   setup-sun                            ; criar o sol
-  set-default-shape turtles "bug"      ; define o formato das formigas como "inseto"
   create-turtles population [          ; cria formigas com base no valor do slider 'population
-    ifelse random 100 < 50 [           ; 50% operarios e 50% guerreiras
+    ifelse random 100 < 75 [           ; 75% operarios e 25% guerreiras
       set ant-type "operaria"          ; operaria
       set size 1                       ; tamanho
       set color red                    ; cor
@@ -73,7 +72,7 @@ to create-predators
    set color brown                      ; cor
    set label "tamandua"                 ; nome do predador
    setxy -1 21                          ; posição do predador
-   set life 100                         ; vida inicial predador(Tamanduá)
+   set life 60                         ; vida inicial predador(Tamanduá)
   ]
   ;;Cria o Sapo
   create-turtles 1                      ; Cria um predador
@@ -82,6 +81,14 @@ to create-predators
    set shape "frog top"                 ;nome do predador
    setxy 20 -22                         ;posição do predador
    set life 12                          ;vida inicial predador(Sapo)
+  ]
+  ; Cria a aranha
+  create-turtles 1                     ; Cria um predador
+  [set size 5                          ; tamanho
+   set color magenta                       ; cor
+   set shape "spider"                  ; formato
+   setxy -20 0                         ; posição do predador
+   set life 10                         ; vida inicial(aranha)
   ]
 end
 
@@ -100,41 +107,40 @@ end
 
 to setup-food  ; procedimento dos patches
   ; Configura três fontes de alimento em posições específicas
-  if (distancexy (0.6 * max-pxcor) 0) < 5 [
-    set food-source-number 1
+  if (distancexy (0.6 * max-pxcor) 0) < 5 [ ; Verifica se a distância do patch ao ponto (0.6 * max-pxcor, 0) é menor que 5. Este ponto está deslocado 60% para a direita no eixo X do ambiente.
+    set food-source-number 1                ; Define food-source-number como 1, identificando que o patch faz parte da primeira fonte de alimento.
     set food 3                           ; Alta quantidade de comida
     set food-value 3                     ; alta nutrição
   ]
-  if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5 [
-    set food-source-number 2
+  if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5 [ ;Verifica se a distância do patch ao ponto (-0.6 * max-pxcor, -0.6 * max-pycor) é menor que 5. Este ponto está deslocado 60% para a esquerda no eixo X e 60% para baixo no eixo Y.
+    set food-source-number 2               ; Define food-source-number como 2, identificando que o patch faz parte da segunda fonte de alimento.
     set food 2;                            ; Média quantidade de comida
     set food-value 2                       ; Nutrição Média
   ]
-  if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5 [
-    set food-source-number 3
+  if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5 [ ; Verifica se a distância do patch ao ponto (-0.8 * max-pxcor, 0.8 * max-pycor) é menor que 5. Este ponto está deslocado 80% para a esquerda no eixo X e 80% para cima no eixo Y.
+    set food-source-number 3              ; Define food-source-number como 3, identificando que o patch faz parte da terceira fonte de alimento.
     set food 1                            ; Baixa quantidade de comida
     set food-value 1                      ; Nutrição Baixa
   ]
   ; Se o patch faz parte de uma fonte de alimento, atribui uma quantidade de comida (1 ou 2)
-  if food-source-number > 0 [
-    set food one-of [1 2]
+  if food-source-number > 0 [ ;Verifica se o patch faz parte de uma fonte de alimento (food-source-number > 0).
+    set food one-of [1 2 3] ; Define a quantidade de comida (food) como 1 2 ou 3, escolhida aleatoriamente.
   ]
 end
 
-to recolor-patch
-  ifelse predator-pheromone > 0 [
+to recolor-patch ; Altera a cor dos patches no ambiente do modelo em NetLogo com base em suas características ou estados,
+  ifelse predator-pheromone > 0 [ ; Se o patch possui feromônio do predador (predator-pheromone > 0), sua cor será definida
     set pcolor scale-color yellow predator-pheromone 0.1 5 ; Feromônio do predador em amarelo
   ] [
-    ifelse food > 0 [
-     ; Patches com comida são coloridos de acordo com a fonte
-      if food-source-number = 1 [ set pcolor cyan ]
-      if food-source-number = 2 [ set pcolor sky ]
-      if food-source-number = 3 [ set pcolor blue ]
+    ifelse food > 0 [ ; Patches com comida são coloridos de acordo com a fonte
+      if food-source-number = 1 [ set pcolor cyan ] ; Fonte 1: cyan (ciano).
+      if food-source-number = 2 [ set pcolor sky ] ; Fonte 2: sky (azul claro).
+      if food-source-number = 3 [ set pcolor blue ] ; Fonte 3: blue (azul escuro).
     ] [
-      ifelse nest? [
+      ifelse nest? [ ;Se o patch é parte do ninho
          set pcolor violet ; Patches do ninho em violeta
        ] [
-         ifelse chemical > 0 [
+         ifelse chemical > 0 [ ; Se o patch possui feromônio químico (chemical > 0), sua cor será definida.
            set pcolor scale-color green chemical 0.1 5 ; Feromônio das formigas em verde
          ] [
            set pcolor black ; Patches sem feromônio, comida ou ninho ficam pretos
@@ -186,6 +192,16 @@ to go
     patrol                                   ; patrulha
     fd 1                                     ; velocidade
     ]
+  ; Lógica de mortalidade baseada na idade
+  ask turtles [
+    if ant-type = "operaria" [ ; Se for operaria
+      set max-ant-age 60 + random 10 ; Operárias podem viver um pouco mais de 60 anos e variando ate 70
+    ]
+    if ant-type = "guerreira" [ ; Se for guerreira
+      set max-ant-age 45 + random 5 ; Guerreiras têm vida mais curta devido ao esforço físico de 45 variando até 50
+    ]
+    if age >= max-ant-age [ die ] ; Remove formigas que atingiram a idade máxima
+  ]
    let current-population count turtles with [ant-type = "operaria" or ant-type = "guerreira"] ; Conta o número total de formigas operárias e guerreiras presentes na simulação e armazena esse valor na variável current-population.
 
   ; Atualizar o gráfico
@@ -216,33 +232,33 @@ end
 
 ; === COMPORTAMENTOS DAS FORMIGAS ===
 
-to look-for-food  ; procedimento das formigas
+to look-for-food  ; procura por comida
   if food > 0 [                           ; Verifica se há comida
 
-    if random 100 < (food-value * 33) [            ; 33% para cada ponto de valor nutricional (1 a 3)
+    if random 100 < (food-value * 33) [   ; 33% para cada ponto de valor nutricional/ 1 = 33% e 3 = 99%
       set carrying-food? true             ; a formiga pega o alimento
-      set color orange + 1                ; muda a cor para indicar que está carregando comida
+      set color yellow + 1                ; muda a cor para amarelo para indicar que está carregando comida
       set food food - 1                   ; reduz a quantidade de comida no patch
       rt 180                              ; vira 180 graus para retornar ao ninho
       stop                                ; finaliza o procedimento atual
     ]
   ]
-  if (chemical >= 0.05) and (chemical < 2) [
-    uphill-chemical                     ; segue o rastro de feromônio
+  if (chemical >= 0.05) and (chemical < 2) [ ; Verifica se o nível de feromônio no patch atual está entre 0.05 e 2.
+    uphill-chemical                     ; Chama o procedimento uphill-chemical, que direciona a formiga para seguir o gradiente de feromônio em busca de comida.
   ]
 end
 
 to patrol
-  if random 100 < 10 [ rt random 360 ] ; Movimento aleatório ocasional
+  if random 100 < 10 [ rt random 360 ] ; Movimento aleatório ocasional(probabilidade de 10%)/Se a condição for satisfeita, a tartaruga gira para a direita (rt) por um ângulo aleatório entre 0 e 359 graus (random 360).
 end
 
 
 to return-to-nest  ; retornar pro ninho
-  ifelse nest? [
+  ifelse nest? [   ; Comportamento dentro do ninho
     set color red                       ; deposita a comida e muda a cor para não carregando
-      if not carrying-food? and random 100 < 80 [  ; 80% de chance de reprodução
-      hatch 3 [
-        ifelse random 100 < 75 [        ; 50% de chance de nascer operária ou guerreira
+      if not carrying-food? and random 100 < 80 [  ; A formiga não deve estar carregando comida e tem 80% de chance de reprodução
+      hatch 3 [                         ; A formiga gera 3 novas tartarugas no patch atual (hatch 3), cada uma representando uma nova formiga.
+        ifelse random 100 < 75 [        ; 75% de chance de nascer operária e 25% guerreira
           set ant-type "operaria"       ; tipo de formiga
           set life 3                    ; vida
           set size 1                    ; tamanho
@@ -267,10 +283,10 @@ to return-to-nest  ; retornar pro ninho
 end
 
 to defend-nest ; defesa do ninho
-  let predator one-of turtles in-radius 2 with [label = "tamandua" or shape = "frog top"] ; se tiver um tamandua ou sapo em um raio de 2
+  let predator one-of turtles in-radius 2 with [label = "tamandua" or shape = "frog top" or shape = "spider"] ; se tiver um tamandua ou sapo ou aranha em um raio de 2
   if predator != nobody [                ; se predador for diferente d eninguem
     ask predator [
-      set life life - 3 ; diminuem a vida -3 em -3
+      set life life - 2 ; diminuem a vida -3 em -3
       if life <= 0 [ die ]  ; verifica a morte do predador
     ]
   ]
@@ -279,20 +295,20 @@ end
 
 to ant-defense                           ;defesa/ataque das formigas
   ask turtles with [ant-type = "guerreira"] [        ; verifica se a formiga é guerreira
-    let predator one-of turtles in-radius 3 with [label = "tamandua" or shape = "frog top"] ; verifica se o predador esta no raio 3
+    let predator one-of turtles in-radius 3 with [label = "tamandua" or shape = "frog top" or shape = "spider"] ; verifica se o predador esta no raio 3
     if predator != nobody [                          ; se tiver preador
       ask predator [
-        set life life - 3                ;diminui a vida de -1 em -1
+        set life life - 2                ;diminui a vida de -1 em -1
         if life <= 0 [die]              ;verifica a morte ou nao do predaor
       ]
       set predator-alert true           ;alerta de predador
     ]
   ]
   ask turtles with [ant-type = "operaria"] [       ;verifica se a formiga é operaria
-    let predator one-of turtles in-radius 1 with [label = "tamandua" or shape = "frog top"] ; verifica se o predador esta no raio 1
+    let predator one-of turtles in-radius 1 with [label = "tamandua" or shape = "frog top" or shape = "spider"] ; verifica se o predador esta no raio 1
     if predator != nobody [                        ; se tiver predador
       ask predator [
-        set life life - 1                          ; diminui a vida em -1 em -1
+        set life life - 0.5                          ; diminui a vida em -1 em -1
         if life <= 0 [die]                         ; verifica a morte do predador
       ]
       set predator-alert true                      ; alerta de predador
@@ -303,9 +319,29 @@ end
 ; === COMPORTAMENTO DOS PREDADORES ===
 
 to predator-attack                       ;ataque do predador
-  ask turtles with [label = "tamandua" or shape = "frog top"] [ ; Verifica se e tamandua ou sapo
+  ask turtles with [label = "tamandua"] [ ; Verifica se e tamandua
     let prey one-of turtles in-radius 1 with [color = red or color = orange] ; verifica se há uma formiga no raio 1
-    if prey != nobody [     ; se for diferente d ninguem
+    if prey != nobody [     ; se for diferente de ninguem
+     ask prey [
+       set life life - 7                  ;diminui a sua vida em -7
+        if life <= 0 [die]                ;verifica a morte ou nao da formiga
+      ]
+     set predator-alert true             ;alerta do predador
+    ]
+  ]
+   ask turtles with [shape = "frog top"] [ ; Verifica se e sapo
+    let prey one-of turtles in-radius 1 with [color = red or color = orange] ; verifica se há uma formiga no raio 1
+    if prey != nobody [     ; se for diferente de ninguem
+     ask prey [
+       set life life - 4                  ;diminui a sua vida em -4
+        if life <= 0 [die]                ;verifica a morte ou nao da formiga
+      ]
+     set predator-alert true             ;alerta do predador
+    ]
+  ]
+   ask turtles with [shape = "spider"] [ ; Verifica se e aranha
+    let prey one-of turtles in-radius 1 with [color = red or color = orange] ; verifica se há uma formiga no raio 1
+    if prey != nobody [     ; se for diferente de ninguem
      ask prey [
        set life life - 3                  ;diminui a sua vida em -3
         if life <= 0 [die]                ;verifica a morte ou nao da formiga
@@ -337,6 +373,18 @@ to predator-move
       rt random 10                     ; Caso não haja presa, move-se aleatoriamente de 0 a 10 graus para a direita
       lt random 10                     ;  Gira um ângulo aleatório de 0 a 10 graus para a esquerda
       fd 1.2                           ; ; Move-se uma pequena distância
+    ]
+    if not can-move? 1 [ rt 180 ]       ; Se não puder se mover, gira 180 graus
+  ]
+   ask turtles with [shape = "spider"] [ ; se for aranha
+    let prey one-of turtles with [ant-type = "operaria" or ant-type = "guerreira"] ;  Define prey como uma tartaruga aleatória do conjunto de tartarugas com o tipo de formiga "operaria" ou "guerreira"
+    ifelse prey != nobody [              ; Se prey não for nobody (há uma presa):
+      face prey                         ; Predador olha na direção da presa
+      fd 2                              ; Move-se em direção à presa
+    ] [                                 ; se não tiver presa
+      rt random 7                     ; Caso não haja presa, move-se aleatoriamente de 0 a 10 graus para a direita
+      lt random 7                     ;  Gira um ângulo aleatório de 0 a 10 graus para a esquerda
+      fd 0.8                           ; ; Move-se uma pequena distância
     ]
     if not can-move? 1 [ rt 180 ]       ; Se não puder se mover, gira 180 graus
   ]
@@ -442,8 +490,8 @@ to setup-sun                  ; criando o sol
 end
 
 to switch-climate              ; Mudança de clima
-  if climate-duration = 0 [    ; verifica se a duracao do clima atingiu sua duração máxima
-    ; Alterna entre sol e chuva
+  if climate-duration = 0 [    ; verifica se a duracao do clima atingiu sua duração máxim
+     ; Alterna entre sol e chuva
     ifelse sunny? [            ; se sunny for verdadeiro
       set sunny? false         ; se torna falso o sol
       set raining? true        ; se torna verdadeiro a chuva
@@ -938,6 +986,23 @@ Rectangle -1 true true 65 221 80 296
 Polygon -1 true true 195 285 210 285 210 240 240 210 195 210
 Polygon -7500403 true false 276 85 285 105 302 99 294 83
 Polygon -7500403 true false 219 85 210 105 193 99 201 83
+
+spider
+true
+0
+Polygon -7500403 true true 134 255 104 240 96 210 98 196 114 171 134 150 119 135 119 120 134 105 164 105 179 120 179 135 164 150 185 173 199 195 203 210 194 240 164 255
+Line -7500403 true 167 109 170 90
+Line -7500403 true 170 91 156 88
+Line -7500403 true 130 91 144 88
+Line -7500403 true 133 109 130 90
+Polygon -7500403 true true 167 117 207 102 216 71 227 27 227 72 212 117 167 132
+Polygon -7500403 true true 164 210 158 194 195 195 225 210 195 285 240 210 210 180 164 180
+Polygon -7500403 true true 136 210 142 194 105 195 75 210 105 285 60 210 90 180 136 180
+Polygon -7500403 true true 133 117 93 102 84 71 73 27 73 72 88 117 133 132
+Polygon -7500403 true true 163 140 214 129 234 114 255 74 242 126 216 143 164 152
+Polygon -7500403 true true 161 183 203 167 239 180 268 239 249 171 202 153 163 162
+Polygon -7500403 true true 137 140 86 129 66 114 45 74 58 126 84 143 136 152
+Polygon -7500403 true true 139 183 97 167 61 180 32 239 51 171 98 153 137 162
 
 square
 false
