@@ -304,7 +304,7 @@ to defend-nest ; defesa do ninho
   ; se tiver um tamandua ou sapo ou aranha em um raio de 2
   if predator != nobody [                ; se predador for diferente d eninguem
     ask predator [
-      set life life - 2 ; diminuem a vida -3 em -3
+      set life life - 2 ; diminuem a vida -2 em -2
       if life <= 0 [ die ]  ; verifica a morte do predador
     ]
   ]
@@ -317,7 +317,7 @@ to ant-defense                           ;defesa/ataque das formigas
     ; verifica se o predador esta no raio 3
     if predator != nobody [                          ; se tiver preador
       ask predator [
-        set life life - 2                ;diminui a vida de -1 em -1
+        set life life - 2                ;diminui a vida de -2 em -2
         if life <= 0 [die]              ;verifica a morte ou nao do predaor
       ]
       set predator-alert true           ;alerta de predador
