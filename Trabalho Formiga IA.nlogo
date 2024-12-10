@@ -110,18 +110,27 @@ end
 
 to setup-food  ; procedimento dos patches
   ; Configura três fontes de alimento em posições específicas
-  if (distancexy (0.6 * max-pxcor) 0) < 5 [ ; Verifica se a distância do patch ao ponto (0.6 * max-pxcor, 0) é menor que 5. Este ponto está deslocado 60% para a direita no eixo X do ambiente.
-    set food-source-number 1                ; Define food-source-number como 1, identificando que o patch faz parte da primeira fonte de alimento.
+  if (distancexy (0.6 * max-pxcor) 0) < 5 [
+ ; Verifica se a distância do patch ao ponto (0.6 * max-pxcor, 0) é menor que 5.
+ ;Este ponto está deslocado 60% para a direita no eixo X do ambiente.
+    set food-source-number 1
+ ; Define food-source-number como 1, identificando que o patch faz parte da primeira fonte de alimento.
     set food 3                           ; Alta quantidade de comida
     set food-value 3                     ; alta nutrição
   ]
-  if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5 [ ;Verifica se a distância do patch ao ponto (-0.6 * max-pxcor, -0.6 * max-pycor) é menor que 5. Este ponto está deslocado 60% para a esquerda no eixo X e 60% para baixo no eixo Y.
-    set food-source-number 2               ; Define food-source-number como 2, identificando que o patch faz parte da segunda fonte de alimento.
+  if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5 [
+ ;Verifica se a distância do patch ao ponto (-0.6 * max-pxcor, -0.6 * max-pycor) é menor que 5.
+ ;Este ponto está deslocado 60% para a esquerda no eixo X e 60% para baixo no eixo Y.
+    set food-source-number 2
+ ; Define food-source-number como 2, identificando que o patch faz parte da segunda fonte de alimento.
     set food 2;                            ; Média quantidade de comida
     set food-value 2                       ; Nutrição Média
   ]
-  if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5 [ ; Verifica se a distância do patch ao ponto (-0.8 * max-pxcor, 0.8 * max-pycor) é menor que 5. Este ponto está deslocado 80% para a esquerda no eixo X e 80% para cima no eixo Y.
-    set food-source-number 3              ; Define food-source-number como 3, identificando que o patch faz parte da terceira fonte de alimento.
+  if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5 [
+ ; Verifica se a distância do patch ao ponto (-0.8 * max-pxcor, 0.8 * max-pycor) é menor que 5.
+ ;Este ponto está deslocado 80% para a esquerda no eixo X e 80% para cima no eixo Y.
+    set food-source-number 3
+ ; Define food-source-number como 3, identificando que o patch faz parte da terceira fonte de alimento.
     set food 1                            ; Baixa quantidade de comida
     set food-value 1                      ; Nutrição Baixa
   ]
@@ -314,15 +323,30 @@ to ant-defense                           ;defesa/ataque das formigas
       set predator-alert true           ;alerta de predador
     ]
   ]
-  ask turtles with [ant-type = "operaria"] [       ;verifica se a formiga é operaria
-    let predator one-of turtles in-radius 1 with [label = "tamandua" or shape = "frog top" or shape = "spider"]
-    ; verifica se o predador esta no raio 1
-    if predator != nobody [                        ; se tiver predador
+ ;; Operárias fogem ou defendem com base na proximidade do ninho
+  ask turtles with [ant-type = "operaria"] [ ;Tipo operária
+    let predator one-of turtles in-radius 2 with [label = "tamandua" or shape = "frog top" or shape = "spider"]
+    ;Se estiver em raio 2 esses predadores
+
+    ;; Se estiver longe do ninho, prioriza a fuga
+    if not nest? and predator != nobody [
+      rt random 180 ; Vira em uma direção aleatória
+      fd 2 ; Afasta-se rapidamente
+    ]
+
+    ;; Se estiver no ninho ou próximo, tenta defender
+    if nest? and predator != nobody [
       ask predator [
-        set life life - 0.5                          ; diminui a vida em -1 em -1
-        if life <= 0 [die]                         ; verifica a morte do predador
+        set life life - 0.5 ; Reduz a vida do predador
+        if life <= 0 [ die ] ; Remove o predador se a vida chegar a zero
       ]
-      set predator-alert true                      ; alerta de predador
+    ]
+
+    ;; Se o predador estiver próximo, ativa alerta e tenta fugir após defender
+    if predator != nobody [
+      set predator-alert true ; Ativa o alerta para guerreiras
+      rt random 180 ; Vira em uma direção aleatória para fugir
+      fd 2 ; Afasta-se rapidamente
     ]
   ]
 end
